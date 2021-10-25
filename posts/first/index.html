@@ -6,7 +6,7 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-		<title>这是我的第一篇博客 &middot; 程序员的自我救赎</title>
+		<title> &middot; 程序员的自我救赎</title>
 
 		
 		<link rel="stylesheet" href="/css/style.css">
@@ -43,16 +43,92 @@
 		<div class="post-info">
     <span>Written by</span>
         
-        <br>
-        <span>on&nbsp;</span><time datetime="2021-10-22 11:33:13 &#43;0800 CST">October 22, 2021</time>
 </div>
 
-		<h1 class="post-title">这是我的第一篇博客</h1>
+		<h1 class="post-title"></h1>
 <div class="post-line"></div>
 
 		
 
-		<p>我是胡彦111111111111111111111111111111111111111111111111111111111111111</p>
+		<h1 id="kubernetes新手村历练篇kubeadm搭建k8s">Kubernetes新手村历练篇——kubeadm搭建k8s</h1>
+<h2 id="引言">引言</h2>
+<p>作为近三十年最牛逼的开源项目，k8s的搭建自然是劝退很多人的拦路虎，以我浅短的认知，目前主流的安装方式一共有三种</p>
+<ol>
+<li>使用rancher 等可视化工具无脑安装</li>
+<li>k8s社区大佬写的kubeadm部署工具（冷知识：大佬写kubeadm的时候在上高中）</li>
+<li>最困难的二进制部署方式</li>
+</ol>
+<p>作为高逼格的正经人，自然不能选用可视化界面点点点，暂且先采用第二种kubeadm部署。</p>
+<h2 id="前">前</h2>
+<p>万事开头难，这句话不假，可是有很多人连开头都没开，准备工作也是很重要的。</p>
+<p>首先我一般学习是采用购买云厂商的服务器，双十一快到了，赶紧准备屯几台服务器吧。我的大概配置是这样的</p>
+<ul>
+<li>三台centos7.x操作系统、配置2核4G、能够内网互通的服务器（这个配置应该是最低配了，谁说学编程省钱的）</li>
+<li>安装docker（配一下阿里云的镜像加速的服务，你懂的）</li>
+<li>防火墙和SElinux还有swap关闭（更方便学习）</li>
+</ul>
+<h2 id="中">中</h2>
+<p>其实在国外安装k8s很简单，就几条命令的事，难就难在国内一些不可描述的原因。</p>
+<h4 id="一安装kubeadmkubeletkubectl注意要让版本相差不多">一、安装kubeadm、kubelet、kubectl（注意要让版本相差不多）</h4>
+<ul>
+<li><code>kubeadm</code>:用来初始化集群</li>
+<li><code>kubelet</code>:在集群中的每个节点上用来启动pod和容器等</li>
+<li><code>kubectl</code>: 用来与集群通讯的工具</li>
+</ul>
+<p>核心命令：<code>yum -y install kubelet-1.18.6  kubeadm-1.18.6  kubectl-1.18.6</code> (先暂且用这个老一点的后面再升，搞不下来的可以参考阿里云开发者社区里的镜像站)</p>
+<p>再执行<code>systemctl enable kubelet &amp;&amp; systemctl start kubelet</code></p>
+<h4 id="二kebeadm执行init">二、kebeadm执行init</h4>
+<p>选一个自己喜欢的机器执行<code>sudo kubeadm init --kubernetes-version=v1.18.6 --image-repository registry.aliyuncs.com/google_containers</code> （真的很烦，明明只需要一个<code>kubeadm init</code>）好了，再等待的时候我们来看一下这个简单的init命令都干了什么事</p>
+<blockquote>
+<p>当你执行完kubeadm init指令之后，kubeadm 首先要做的，是一系列的检查工作，以确定这台机器可以用来部署 Kubernetes。这一步检查，我们称为“Preflight Checks”，它可以为你省掉很多后续的麻烦。</p>
+</blockquote>
+<ul>
+<li>Linux 内核的版本必须是否是 3.10 以上？</li>
+<li>Linux Cgroups 模块是否可用？机器的 hostname 是否标准？</li>
+<li>在 Kubernetes 项目里，机器的名字以及一切存储在 Etcd 中的 API 对象，都必须使用标准的 DNS 命名（RFC 1123）。</li>
+<li>用户安装的 kubeadm 和 kubelet 的版本是否匹配？机器上是不是已经安装了 Kubernetes 的二进制文件？</li>
+<li>Kubernetes 的工作端口 10250/10251/10252 端口是不是已经被占用？</li>
+<li>ip、mount 等 Linux 指令是否存在？</li>
+<li>Docker 是否已经安装？</li>
+<li>……</li>
+</ul>
+<p>在通过了 Preflight Checks 之后，kubeadm 要为你做的，是生成 Kubernetes 对外提供服务所需的各种证书和对应的目录。</p>
+<blockquote>
+<p>光说不练假把式，直接在它执行的时候就去看。主要就在<code>ls /etc/kubernetes</code>这个目录中（有人说，我为啥要了解这么清楚，会用不就行了吗，这里面有很多kubernetes的组件，看完就会加深理解）</p>
+</blockquote>
+<ul>
+<li>
+<p>生成kubernetes对外提供服务的各种需要的证书和对应的目录</p>
+<p><!-- raw HTML omitted --></p>
+</li>
+<li>
+<p>为其他组件生成访问kube-apiserver所需的配置文件</p>
+</li>
+</ul>
+<p><!-- raw HTML omitted --></p>
+<ul>
+<li>kubeadm为master其他组件生成pod的配置文件</li>
+</ul>
+<p><!-- raw HTML omitted --></p>
+<blockquote>
+<p>在k8s中万物皆pod，从这个<code>manifests</code>文件中可以看出核心组件有etcd、apiserver、control-manager、scheduler,还记得之前安装的kubelet嘛，它就负责监视这个<code>manifests</code>,从而能创建pod。</p>
+</blockquote>
+<ul>
+<li>
+<p>安装默认插件（kube-proxy和DNS）</p>
+<blockquote>
+<p>kube-proxy：提供整个集群外的服务发现，如 svc 的 nodeport 暴露策略是提供 K8S 集群意外的其他服务的发现访问，但是需要提供七层代理的话这时候就需要采用 ingress 的插件来实现 DNS：提供给 K8S 整个集群内部的 pod 直接的访问。 总结：kube-proxy 对集群外、DNS 对集群内</p>
+</blockquote>
+</li>
+<li>
+<p>kubeadm 就会为集群生成一个bootstrap token（这个token是在init命令执行完成之后在终端显示出来的，你只需要在worker节点上执行就行）</p>
+</li>
+</ul>
+<p>除此之外，你还需要按照最后终端提示的命令，将<code>/etc/kubernetes/admin.conf</code> 复制到<code>$HOME/.kube</code>中，里面有提示，我就懒得找了。要不然每次你kubectl都得再单独找配置文件。</p>
+<h2 id="后">后</h2>
+<p>一个简单的init命令里面的执行流程就如此复杂，不过你以为就结束了吗，先来看一下成果。</p>
+<p><img src="C:%5CUsers%5C%E8%83%A1%E5%B0%8F%E9%BE%99%5CAppData%5CRoaming%5CTypora%5Ctypora-user-images%5Cimage-20211025104436004.png" alt="image-20211025104436004"></p>
+<p>可以看到dns服务仍处于pending状态，因为还没有安装网络插件。未完待续。。。</p>
 
 
 		
@@ -68,7 +144,7 @@
         		<footer>
 			
 			<span>
-			&copy; <time datetime="2021-10-22 14:31:04.6183727 &#43;0800 CST m=&#43;0.111698201">2021</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
+			&copy; <time datetime="2021-10-25 10:51:27.7131917 &#43;0800 CST m=&#43;0.131543801">2021</time> . Made with <a href='https://gohugo.io'>Hugo</a> using the <a href='https://github.com/EmielH/tale-hugo/'>Tale</a> theme.
 			</span>
 		</footer>
 
